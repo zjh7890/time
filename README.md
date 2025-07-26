@@ -19,10 +19,10 @@
 
 ```bash
 # 使用默认时区（Asia/Shanghai）
-uv run --from git+https://github.com/zjh7890/time.git mcp-time-server
+uv tool run --from git+https://github.com/zjh7890/time.git mcp-time-server
 
 # 指定时区
-uv run --from git+https://github.com/zjh7890/time.git mcp-time-server --timezone "US/Eastern"
+uv tool run --from git+https://github.com/zjh7890/time.git mcp-time-server --timezone "US/Eastern"
 ```
 
 ## Claude Desktop 配置
@@ -35,6 +35,7 @@ uv run --from git+https://github.com/zjh7890/time.git mcp-time-server --timezone
     "time-server": {
       "command": "uv",
       "args": [
+        "tool",
         "run",
         "--from",
         "git+https://github.com/zjh7890/time.git",
