@@ -53,18 +53,23 @@ async def handle_list_tools() -> list[Tool]:
         ),
         Tool(
             name="convert_time",
-            description="时间格式转换工具：支持毫秒时间戳与固定格式字符串(yyyy-MM-dd HH:mm:ss.SSS)之间的相互转换",
+            description="时间格式转换工具：支持时间戳与固定格式字符串(yyyy-MM-dd HH:mm:ss.SSS)之间的相互转换",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "input_value": {
                         "type": "string",
-                        "description": "输入值：可以是毫秒时间戳(字符串格式)或时间字符串(yyyy-MM-dd HH:mm:ss.SSS格式)"
+                        "description": "输入值：可以是时间戳(字符串格式的数字)或时间字符串(yyyy-MM-dd HH:mm:ss.SSS格式)"
                     },
                     "convert_to": {
                         "type": "string",
                         "enum": ["timestamp", "string"],
-                        "description": "转换目标类型：timestamp(转为毫秒时间戳) 或 string(转为yyyy-MM-dd HH:mm:ss.SSS格式)"
+                        "description": "转换目标类型：timestamp(转为时间戳) 或 string(转为yyyy-MM-dd HH:mm:ss.SSS格式)"
+                    },
+                    "timestamp_precision": {
+                        "type": "string",
+                        "enum": ["seconds", "milliseconds"],
+                        "description": "时间戳精度：seconds(秒级时间戳) 或 milliseconds(毫秒级时间戳)，默认为milliseconds"
                     }
                 },
                 "required": ["input_value", "convert_to"]
@@ -160,35 +165,48 @@ async def handle_call_tool(name: str, arguments: dict) -> list:
         try:
             input_value = arguments["input_value"]
             convert_to = arguments["convert_to"]
+            # 获取时间戳精度参数，默认为毫秒级
+            timestamp_precision = arguments.get("timestamp_precision", "milliseconds")
             
             if convert_to == "timestamp":
-                # 字符串转时间戳：输入必须是字符串格式 yyyy-MM-dd HH:mm:ss.SSS
-                time_string = str(input_value)
+                # 字符串转时间戳：输入必须是时间字符串格式 yyyy-MM-dd HH:mm:ss.SSS
+                input_str = str(input_value).strip()
                 
                 # 解析时间字符串为datetime对象
-                dt = parse_datetime(time_string, "yyyy-MM-dd HH:mm:ss.SSS")
+                dt = parse_datetime(input_str, "yyyy-MM-dd HH:mm:ss.SSS")
                 
                 # 设置时区
                 dt = SERVER_TIMEZONE.localize(dt)
                 
-                # 获取时间戳（毫秒）
-                timestamp = int(dt.timestamp() * 1000)
+                # 根据精度参数获取时间戳
+                if timestamp_precision == "seconds":
+                    timestamp = int(dt.timestamp())
+                else:  # milliseconds
+                    timestamp = int(dt.timestamp() * 1000)
                 
-                return [{"type": "text", "text": f"转换结果: {timestamp}"}]
+                precision_text = "秒级" if timestamp_precision == "seconds" else "毫秒级"
+                return [{"type": "text", "text": f"转换结果: {timestamp} ({precision_text}时间戳)"}]
                 
             elif convert_to == "string":
-                # 时间戳转字符串：输入必须是毫秒时间戳字符串
-                try:
-                    timestamp = float(input_value)
-                except ValueError:
-                    raise ValueError("转换为字符串时，输入值必须是有效的毫秒时间戳字符串")
+                # 时间戳转字符串：输入是字符串格式的时间戳
+                input_str = str(input_value).strip()
                 
-                dt = datetime.fromtimestamp(timestamp / 1000, tz=SERVER_TIMEZONE)
+                try:
+                    timestamp = float(input_str)
+                except ValueError:
+                    raise ValueError("转换为字符串时，输入值必须是有效的时间戳字符串")
+                
+                # 根据精度参数处理时间戳
+                if timestamp_precision == "seconds":
+                    dt = datetime.fromtimestamp(timestamp, tz=SERVER_TIMEZONE)
+                else:  # milliseconds
+                    dt = datetime.fromtimestamp(timestamp / 1000, tz=SERVER_TIMEZONE)
                 
                 # 格式化时间为固定格式
                 formatted_time = format_datetime(dt, "yyyy-MM-dd HH:mm:ss.SSS")
                 
-                return [{"type": "text", "text": f"转换结果: {formatted_time}"}]
+                precision_text = "秒级" if timestamp_precision == "seconds" else "毫秒级"
+                return [{"type": "text", "text": f"转换结果: {formatted_time} (从{precision_text}时间戳转换)"}]
                 
             else:
                 return [{"type": "text", "text": f"未知转换目标: {convert_to}"}]
