@@ -52,51 +52,22 @@ async def handle_list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="timestamp_to_string",
-            description="将时间戳转换为指定格式的字符串",
+            name="convert_time",
+            description="时间格式转换工具：支持毫秒时间戳与固定格式字符串(yyyy-MM-dd HH:mm:ss.SSS)之间的相互转换",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "timestamp": {
-                        "type": "number",
-                        "description": "时间戳（秒或毫秒）"
+                    "input_value": {
+                        "type": ["string", "number"],
+                        "description": "输入值：可以是毫秒时间戳(数字)或时间字符串(yyyy-MM-dd HH:mm:ss.SSS格式)"
                     },
-                    "format": {
+                    "convert_to": {
                         "type": "string",
-                        "description": "时间格式，默认为 'yyyy-MM-dd HH:mm:ss.SSS'",
-                        "default": "yyyy-MM-dd HH:mm:ss.SSS"
-                    },
-                    "is_milliseconds": {
-                        "type": "boolean",
-                        "description": "时间戳是否为毫秒格式，默认为false（秒格式）",
-                        "default": False
+                        "enum": ["timestamp", "string"],
+                        "description": "转换目标类型：timestamp(转为毫秒时间戳) 或 string(转为yyyy-MM-dd HH:mm:ss.SSS格式)"
                     }
                 },
-                "required": ["timestamp"]
-            }
-        ),
-        Tool(
-            name="string_to_timestamp",
-            description="将时间字符串转换为时间戳",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "time_string": {
-                        "type": "string",
-                        "description": "时间字符串"
-                    },
-                    "format": {
-                        "type": "string",
-                        "description": "时间格式，默认为 'yyyy-MM-dd HH:mm:ss.SSS'",
-                        "default": "yyyy-MM-dd HH:mm:ss.SSS"
-                    },
-                    "return_milliseconds": {
-                        "type": "boolean",
-                        "description": "是否返回毫秒时间戳，默认为false（返回秒时间戳）",
-                        "default": False
-                    }
-                },
-                "required": ["time_string"]
+                "required": ["input_value", "convert_to"]
             }
         )
     ]
@@ -185,49 +156,44 @@ async def handle_call_tool(name: str, arguments: dict) -> list:
             logger.error(f"获取当前时间时发生错误: {e}")
             return [{"type": "text", "text": f"错误: {str(e)}"}]
     
-    elif name == "timestamp_to_string":
+    elif name == "convert_time":
         try:
-            timestamp = arguments["timestamp"]
-            format_str = arguments.get("format", "yyyy-MM-dd HH:mm:ss.SSS")
-            is_milliseconds = arguments.get("is_milliseconds", False)
+            input_value = arguments["input_value"]
+            convert_to = arguments["convert_to"]
             
-            # 转换时间戳
-            if is_milliseconds:
+            if convert_to == "timestamp":
+                # 字符串转时间戳：输入必须是字符串格式 yyyy-MM-dd HH:mm:ss.SSS
+                time_string = str(input_value)
+                
+                # 解析时间字符串为datetime对象
+                dt = parse_datetime(time_string, "yyyy-MM-dd HH:mm:ss.SSS")
+                
+                # 设置时区
+                dt = SERVER_TIMEZONE.localize(dt)
+                
+                # 获取时间戳（毫秒）
+                timestamp = int(dt.timestamp() * 1000)
+                
+                return [{"type": "text", "text": f"转换结果: {timestamp}"}]
+                
+            elif convert_to == "string":
+                # 时间戳转字符串：输入必须是毫秒时间戳
+                if not isinstance(input_value, (int, float)):
+                    raise ValueError("转换为字符串时，输入值必须是数字类型的毫秒时间戳")
+                
+                timestamp = float(input_value)
                 dt = datetime.fromtimestamp(timestamp / 1000, tz=SERVER_TIMEZONE)
+                
+                # 格式化时间为固定格式
+                formatted_time = format_datetime(dt, "yyyy-MM-dd HH:mm:ss.SSS")
+                
+                return [{"type": "text", "text": f"转换结果: {formatted_time}"}]
+                
             else:
-                dt = datetime.fromtimestamp(timestamp, tz=SERVER_TIMEZONE)
-            
-            # 格式化时间
-            formatted_time = format_datetime(dt, format_str)
-            
-            return [{"type": "text", "text": f"转换结果: {formatted_time}"}]
+                return [{"type": "text", "text": f"未知转换目标: {convert_to}"}]
             
         except Exception as e:
-            logger.error(f"时间戳转换字符串时发生错误: {e}")
-            return [{"type": "text", "text": f"错误: {str(e)}"}]
-    
-    elif name == "string_to_timestamp":
-        try:
-            time_string = arguments["time_string"]
-            format_str = arguments.get("format", "yyyy-MM-dd HH:mm:ss.SSS")
-            return_milliseconds = arguments.get("return_milliseconds", False)
-            
-            # 解析时间字符串
-            dt = parse_datetime(time_string, format_str)
-            
-            # 设置时区
-            dt = SERVER_TIMEZONE.localize(dt)
-            
-            # 获取时间戳
-            timestamp = dt.timestamp()
-            
-            if return_milliseconds:
-                timestamp = int(timestamp * 1000)
-            
-            return [{"type": "text", "text": f"转换结果: {timestamp}"}]
-            
-        except Exception as e:
-            logger.error(f"字符串转换时间戳时发生错误: {e}")
+            logger.error(f"时间格式转换时发生错误: {e}")
             return [{"type": "text", "text": f"错误: {str(e)}"}]
     
     else:
