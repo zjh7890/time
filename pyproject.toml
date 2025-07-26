@@ -1,0 +1,46 @@
+[project]
+name = "mcp-time-server"
+version = "0.1.0"
+description = "MCP时间工具服务器，支持时间相关操作"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["mcp", "time", "server", "datetime", "timezone"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "mcp>=1.0.0",
+    "pytz>=2024.1",
+    "tzdata>=2024.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/zjh7890/time"
+Repository = "https://github.com/zjh7890/time.git"
+Issues = "https://github.com/zjh7890/time/issues"
+
+[project.scripts]
+mcp-time-server = "mcp_time_server.main:cli_main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+] 
