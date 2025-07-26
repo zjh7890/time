@@ -58,8 +58,8 @@ async def handle_list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "input_value": {
-                        "type": ["string", "number"],
-                        "description": "输入值：可以是毫秒时间戳(数字)或时间字符串(yyyy-MM-dd HH:mm:ss.SSS格式)"
+                        "type": "string",
+                        "description": "输入值：可以是毫秒时间戳(字符串格式)或时间字符串(yyyy-MM-dd HH:mm:ss.SSS格式)"
                     },
                     "convert_to": {
                         "type": "string",
@@ -177,11 +177,12 @@ async def handle_call_tool(name: str, arguments: dict) -> list:
                 return [{"type": "text", "text": f"转换结果: {timestamp}"}]
                 
             elif convert_to == "string":
-                # 时间戳转字符串：输入必须是毫秒时间戳
-                if not isinstance(input_value, (int, float)):
-                    raise ValueError("转换为字符串时，输入值必须是数字类型的毫秒时间戳")
+                # 时间戳转字符串：输入必须是毫秒时间戳字符串
+                try:
+                    timestamp = float(input_value)
+                except ValueError:
+                    raise ValueError("转换为字符串时，输入值必须是有效的毫秒时间戳字符串")
                 
-                timestamp = float(input_value)
                 dt = datetime.fromtimestamp(timestamp / 1000, tz=SERVER_TIMEZONE)
                 
                 # 格式化时间为固定格式
