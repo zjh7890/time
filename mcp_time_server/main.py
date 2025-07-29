@@ -146,8 +146,8 @@ async def handle_call_tool(name: str, arguments: dict) -> list:
             # 格式化时间字符串
             formatted_time = format_datetime(now, 'yyyy-MM-dd HH:mm:ss.SSS')
             
-            # 获取时间戳（秒）
-            timestamp = now.timestamp()
+            # 获取时间戳（毫秒）
+            timestamp = int(now.timestamp() * 1000)
             
             result = {
                 "formatted_time": formatted_time,
