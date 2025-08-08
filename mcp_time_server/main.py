@@ -44,7 +44,7 @@ async def handle_list_tools() -> list[Tool]:
     return [
         Tool(
             name="get_current_time",
-            description="获取当前时间，返回指定格式的时间字符串和时间戳",
+            description="获取当前时间，返回指定格式的时间字符串和毫秒时间戳",
             inputSchema={
                 "type": "object",
                 "properties": {},
@@ -155,7 +155,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list:
                 "timezone": str(SERVER_TIMEZONE)
             }
             
-            return [{"type": "text", "text": f"当前时间信息：\n格式化时间: {formatted_time}\n时间戳: {timestamp}\n时区: {SERVER_TIMEZONE}"}]
+            return [{"type": "text", "text": f"当前时间信息：\n格式化时间: {formatted_time}\n毫秒时间戳: {timestamp}\n时区: {SERVER_TIMEZONE}"}]
             
         except Exception as e:
             logger.error(f"获取当前时间时发生错误: {e}")
